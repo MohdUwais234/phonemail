@@ -4,7 +4,7 @@ permissions:
   contents: read
 jobs:
   test:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     services:
       postgres:
         image: postgres:16-alpine
@@ -15,7 +15,7 @@ jobs:
         ports: ["5432:5432"]
         options: --health-cmd "pg_isready -U phonemail -d phonemail_test" --health-interval 5s --health-timeout 5s --health-retries 10
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Typecheck, test on PostgreSQL 16, and build (Docker Node 22)
         run: |
           docker run --rm --network host -v "$PWD:/workspace" -w /workspace \
