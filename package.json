@@ -1,0 +1,22 @@
+{
+  "name": "phonemail",
+  "private": true,
+  "workspaces": [
+    "backend",
+    "web"
+  ],
+  "scripts": {
+    "build": "npm run build -w backend && npm run build -w web",
+    "test": "npm run test -w backend",
+    "typecheck": "npm run typecheck --workspaces",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "android:sync": "npm run android:sync -w web"
+  },
+  "devDependencies": {
+    "prettier": "^3.6.2"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}
