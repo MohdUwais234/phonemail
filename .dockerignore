@@ -1,0 +1,9 @@
+.git
+**/node_modules
+**/dist
+**/build
+**/.gradle
+.env
+.env.*
+web/android
+*.log

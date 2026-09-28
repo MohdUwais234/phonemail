@@ -1,0 +1,75 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: phonemail
+      POSTGRES_PASSWORD: phonemail_local
+      POSTGRES_DB: phonemail
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./database/init-test.sql:/docker-entrypoint-initdb.d/01-test.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U phonemail -d phonemail"]
+      interval: 5s
+      timeout: 5s
+      retries: 15
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    env_file: .env
+    ports:
+      - "3000:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      mailhog:
+        condition: service_started
+    restart: unless-stopped
+  mailhog:
+    image: mailhog/mailhog:v1.0.1
+    ports:
+      - "127.0.0.1:1025:1025"
+      - "127.0.0.1:8025:8025"
+  web:
+    image: node:22-bookworm-slim
+    working_dir: /workspace
+    env_file: .env
+    environment:
+      API_PROXY_TARGET: http://backend:3000
+    volumes:
+      - .:/workspace
+      - node_modules:/workspace/node_modules
+    ports:
+      - "5173:5173"
+    command: sh -c "npm ci && npm run dev -w web"
+    depends_on:
+      - backend
+  node:
+    image: node:22-bookworm-slim
+    working_dir: /workspace
+    env_file: .env
+    volumes:
+      - .:/workspace
+      - node_modules:/workspace/node_modules
+    profiles: [tools]
+    entrypoint: ["npm"]
+  test:
+    image: node:22-bookworm-slim
+    working_dir: /workspace
+    environment:
+      TEST_DATABASE_URL: postgres://phonemail:phonemail_local@postgres:5432/phonemail_test
+    volumes:
+      - .:/workspace
+      - test_node_modules:/workspace/node_modules
+    depends_on:
+      postgres:
+        condition: service_healthy
+    profiles: [tools]
+    command: sh -c "npm ci && npm run typecheck && npm test"
+volumes:
+  postgres_data:
+  node_modules:
+  test_node_modules:
