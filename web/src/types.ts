@@ -20,6 +20,7 @@ export interface Email {
   message_id: string;
   external_message_id: string | null;
   thread_id: string;
+  delivery_status?: "pending" | "sent" | "failed" | null;
   delivery?: "queued" | "delivered" | "draft";
 }
 export interface MailPage {

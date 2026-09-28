@@ -11,7 +11,8 @@
     "typecheck": "npm run typecheck --workspaces",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "android:sync": "npm run android:sync -w web"
+    "android:sync": "npm run android:sync -w web",
+    "test:e2e": "playwright test"
   },
   "devDependencies": {
     "@playwright/test": "^1.63.0",

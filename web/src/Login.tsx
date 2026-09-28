@@ -153,7 +153,12 @@ export function Login() {
                 <label htmlFor="phone">Enter your phone number</label>
                 <div className="phone-input">
                   <span className="country">
-                    <span>🇮🇳</span> +91
+                    <span
+                      className="india-flag"
+                      role="img"
+                      aria-label="India"
+                    />{" "}
+                    +91
                   </span>
                   <input
                     id="phone"

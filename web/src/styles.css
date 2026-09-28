@@ -2039,3 +2039,68 @@ a {
     transition: none !important;
   }
 }
+
+.india-flag {
+  display: inline-block;
+  width: 20px;
+  height: 14px;
+  background: linear-gradient(#ef9446 0 33.3%, #fff 33.3% 66.6%, #449861 66.6%);
+  position: relative;
+  border: 1px solid #ddd;
+  border-radius: 2px;
+}
+.india-flag:after {
+  content: "";
+  position: absolute;
+  left: 7px;
+  top: 4px;
+  border: 1px solid #354797;
+  border-radius: 50%;
+  width: 4px;
+  height: 4px;
+}
+@media (max-width: 650px) {
+  .login-story h1 br:first-of-type {
+    display: block;
+  }
+  .login-story > .pill,
+  .login-story > p {
+    display: none;
+  }
+  .login-story h1 {
+    font-size: 34px;
+    margin-bottom: 0;
+  }
+  .login-main {
+    margin-top: 25px;
+    gap: 23px;
+  }
+  .login-benefit,
+  .card-divider,
+  .account-note {
+    display: none;
+  }
+  .safe-note {
+    margin-bottom: 0;
+  }
+  .login-card {
+    padding-bottom: 25px;
+  }
+  .login-footer {
+    margin-top: auto;
+  }
+}
+
+.delivery-note {
+  padding: 13px 16px;
+  border-radius: 8px;
+  background: #f6f3fc;
+  color: #756282;
+  font-size: 12px;
+  margin-top: 22px;
+  line-height: 1.7;
+}
+.delivery-note.failed {
+  background: #fff1f1;
+  color: #a94656;
+}

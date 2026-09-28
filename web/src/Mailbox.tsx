@@ -273,6 +273,7 @@ export function Mailbox() {
                 </div>
                 <Button
                   className="secondary refresh-button"
+                  aria-label="Refresh"
                   onClick={reload}
                   disabled={loading || busy}
                 >
@@ -490,6 +491,18 @@ export function Mailbox() {
                     })}
                   </time>
                 </div>
+                {selected.delivery_status && (
+                  <div
+                    className={`delivery-note ${selected.delivery_status}`}
+                    role="status"
+                  >
+                    {selected.delivery_status === "pending"
+                      ? "Queued for SMTP delivery. Refresh the mailbox to check progress."
+                      : selected.delivery_status === "failed"
+                        ? "Email delivery failed after five attempts. Please contact support before sending again."
+                        : "Accepted by the outgoing mail server."}
+                  </div>
+                )}
                 <div className="message-body">
                   {selected.body || "(Empty message)"}
                 </div>

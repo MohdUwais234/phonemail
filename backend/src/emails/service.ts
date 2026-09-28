@@ -11,7 +11,8 @@ export interface Compose {
 }
 const select = `SELECT e.id,e.folder,e.is_read,e.received_at,e.deleted_at,m.*,e.id::text AS id,
  (SELECT address FROM message_recipients r WHERE r.message_id=m.id ORDER BY r.id LIMIT 1) AS "to",
- m.id AS logical_id, m.body_text AS body, m.sender_address AS "from", m.sender_name AS "fromName"
+ m.id AS logical_id, m.body_text AS body, m.sender_address AS "from", m.sender_name AS "fromName",
+ (SELECT state FROM mail_outbox o WHERE o.message_id=m.id LIMIT 1) AS delivery_status
  FROM mailbox_entries e JOIN messages m ON m.id=e.message_id`;
 export class MailService {
   constructor(private db: Database) {}
@@ -99,7 +100,11 @@ export class MailService {
     }
     const id = previous?.logical_id ?? randomUUID();
     const thread = previous?.thread_id ?? original?.thread_id ?? id;
-    const replyTo = previous?.in_reply_to ?? original?.message_id ?? null;
+    const replyTo =
+      previous?.in_reply_to ??
+      original?.external_message_id ??
+      original?.message_id ??
+      null;
     if (previous) {
       await tx.query(
         "UPDATE messages SET subject=$2,body_text=$3,sent_at=$4 WHERE id=$1",

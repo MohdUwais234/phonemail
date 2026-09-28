@@ -61,12 +61,16 @@ services:
     working_dir: /workspace
     environment:
       TEST_DATABASE_URL: postgres://phonemail:phonemail_local@postgres:5432/phonemail_test
+      SMTP_HOST: mailhog
+      SMTP_TEST_URL: http://mailhog:8025
     volumes:
       - .:/workspace
       - test_node_modules:/workspace/node_modules
     depends_on:
       postgres:
         condition: service_healthy
+      mailhog:
+        condition: service_started
     profiles: [tools]
     command: sh -c "npm ci && npm run typecheck && npm test"
 volumes:

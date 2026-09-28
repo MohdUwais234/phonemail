@@ -1,0 +1,29 @@
+name: Browser acceptance
+on: [push, pull_request, workflow_dispatch]
+permissions:
+  contents: read
+jobs:
+  browser:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+      - name: Start development stack
+        run: |
+          cp .env.example .env
+          sed -i 's/OTP_PROVIDER=twilio/OTP_PROVIDER=dev/' .env
+          docker compose up --build -d
+          timeout 180 sh -c 'until curl -fsS http://localhost:5173 >/dev/null && curl -fsS http://localhost:3000/health >/dev/null; do sleep 3; done'
+      - name: Browser acceptance in Docker
+        run: |
+          docker logs -f "$(docker compose ps -q backend)" > /tmp/phonemail-otp.log 2>&1 &
+          docker run --rm --network host -v "$PWD:/workspace" -v /tmp/phonemail-otp.log:/tmp/otp.log:ro \
+            -w /workspace -e OTP_LOG_FILE=/tmp/otp.log \
+            mcr.microsoft.com/playwright:v1.63.0-noble sh -c 'npm ci && npm run test:e2e'
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: browser-test-failure
+          path: test-results
+      - name: Stop containers (preserve data volumes)
+        if: always()
+        run: docker compose down
