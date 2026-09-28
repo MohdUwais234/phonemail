@@ -1,13 +1,16 @@
 // Run inside Docker; connects to the actual Android WebView forwarded by adb.
-import { chromium, expect } from "@playwright/test";
+import { _android as android, expect } from "@playwright/test";
 import { readFileSync, writeFileSync } from "node:fs";
 const local = ["http://127.0.0.1:3000", "http://10.0.2.2:3000"].includes(
   process.env.VITE_API_URL,
 );
-let browser, page;
+let device, page;
 try {
-  browser = await chromium.connectOverCDP("http://127.0.0.1:9222");
-  page = browser.contexts()[0].pages()[0];
+  [device] = await android.devices();
+  if (!device)
+    throw new Error("No Android emulator found through the host ADB server.");
+  const webview = await device.webView({ pkg: "com.phonemail.app" });
+  page = await webview.page();
   if (!local) {
     await expect(
       page.getByRole("button", { name: "Continue with phone" }),
@@ -118,7 +121,7 @@ try {
       "Native OTP, encrypted login, draft, SMTP-independent internal delivery, Sent and reply passed.",
     );
   }
-  if (browser) await browser.close();
+  if (device) await device.close();
 } catch (e) {
   writeFileSync("native-test-diagnostic.txt", String(e.stack || e));
   if (page)
