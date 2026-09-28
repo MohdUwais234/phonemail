@@ -26,8 +26,9 @@ jobs:
           fi
       - name: Build shared frontend and sync Capacitor in Docker
         run: |
-          docker run --rm --user "$(id -u):$(id -g)" -e npm_config_cache=/tmp/npm-cache -v "$PWD:/workspace" -w /workspace -e VITE_API_URL \
+          docker run --rm -v "$PWD:/workspace" -w /workspace -e VITE_API_URL \
             node:22-bookworm-slim sh -c 'npm ci && npm run build -w web && npm run android:sync'
+          sudo chown -R "$(id -u):$(id -g)" node_modules web/android web/dist
       - uses: actions/setup-java@v5
         with:
           distribution: temurin
