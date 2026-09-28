@@ -123,6 +123,8 @@ Send to `to@example.com`. The UI reports queued delivery, then the outbox worker
 
 ## Configure Twilio Verify
 
+**Recommended:** follow [the complete Twilio setup guide](docs/TWILIO.md). Use `scripts/setup-twilio.ps1 -RotateAppSecrets` to enter credentials privately, then `scripts/npm.ps1 run twilio:check` for a read-only service check. Both Account Auth Token and API Key authentication are supported.
+
 In `.env`:
 
 ```dotenv

@@ -7,6 +7,7 @@ import { config } from "./config.js";
 import { AppError } from "./errors.js";
 import type { Database } from "./db/index.js";
 import type { OtpProvider } from "./auth/otp.js";
+import { twilioConfigurationIssues } from "./auth/twilio-client.js";
 import { routes } from "./routes/index.js";
 export function createApp(db: Database, otp: OtpProvider, limits = true) {
   const app = express();
@@ -46,11 +47,7 @@ export function createApp(db: Database, otp: OtpProvider, limits = true) {
         provider: config.OTP_PROVIDER,
         configured:
           config.OTP_PROVIDER === "dev" ||
-          Boolean(
-            config.TWILIO_ACCOUNT_SID &&
-            config.TWILIO_AUTH_TOKEN &&
-            config.TWILIO_VERIFY_SERVICE_SID,
-          ),
+          twilioConfigurationIssues().length === 0,
       },
       smtp: { configured: Boolean(config.SMTP_HOST) },
       inbound: { configured: Boolean(config.INBOUND_WEBHOOK_SECRET) },

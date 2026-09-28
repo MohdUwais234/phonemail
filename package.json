@@ -12,7 +12,8 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "android:sync": "npm run android:sync -w web",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "twilio:check": "npm run twilio:check -w backend"
   },
   "devDependencies": {
     "@playwright/test": "^1.63.0",

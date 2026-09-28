@@ -33,7 +33,7 @@ Public. Body: `{ "phoneNumber": "+919876543210" }`. Accepts the documented natio
 
 200: `{ "message": "Verification code sent.", "retryAfter": 60, "expiresIn": 300 }`.
 
-Errors: 400 invalid phone, 429 limits/cooldown, 503 provider configuration/unavailability. **Never returns an OTP.**
+Errors: 400 invalid phone, 429 limits/cooldown, 503 provider configuration/unavailability. **Never returns an OTP.** `expiresIn` is 600 for the default Twilio Verify lifetime and 300 for development codes; Twilio ultimately decides whether a challenge is valid.
 
 ```powershell
 curl.exe -X POST http://localhost:3000/auth/otp/request -H 'Content-Type: application/json' --data-raw '{"phoneNumber":"9876543210"}'

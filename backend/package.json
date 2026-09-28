@@ -8,7 +8,8 @@
     "typecheck": "tsc --noEmit",
     "start": "node dist/server.js",
     "migrate": "tsx src/db/migrate.ts",
-    "test": "vitest run"
+    "test": "vitest run",
+    "twilio:check": "tsx src/auth/check-twilio.ts"
   },
   "dependencies": {
     "cors": "^2.8.5",

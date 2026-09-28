@@ -65,3 +65,9 @@ PowerShell scripts are provided and their underlying Docker commands are covered
 ## Git / deliverables
 
 The backend, shared client, generated Android project, migrations, Docker scripts, three CI workflows, API/architecture/setup documentation and tests are committed in logical milestones and pushed to the session branch. The original license was preserved; no existing application/data was deleted. Secrets, test output, dependencies and compiled assets are ignored.
+
+## Twilio setup follow-up
+
+Added Account Auth Token and API Key authentication, shape checks, bounded provider timeouts, safe provider-specific errors, a default ten-minute Twilio countdown, a masked PowerShell setup helper, and a read-only `twilio:check` command. 25 additional mocked-SDK tests pass (56 tests pass locally; the MailHog-only test is skipped without its server). The missing-credential preflight was exercised and rejected configuration without sending SMS or revealing secrets. Typechecks pass. Live Twilio access/SMS and execution of the PowerShell helper on Windows still require the operator's machine and credentials. See [TWILIO.md](TWILIO.md).
+
+Shared-in-chat application secrets were not reused: fresh replacements were generated only in the ignored sandbox `.env`, with restrictive local permissions. That sandbox file is not synchronized by Git; rotate secrets independently on other installations.

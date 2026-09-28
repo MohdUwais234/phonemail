@@ -14,7 +14,7 @@ export class AuthService {
     return {
       message: "Verification code sent.",
       retryAfter: 60,
-      expiresIn: 300,
+      expiresIn: this.otp.expiresInSeconds ?? 300,
     };
   }
   async verify(phone: string, code: string) {

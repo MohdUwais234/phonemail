@@ -1,9 +1,10 @@
 import { createHmac, randomInt, timingSafeEqual } from "node:crypto";
-import twilio from "twilio";
+import { twilioVerifyService, twilioError } from "./twilio-client.js";
 import { config } from "../config.js";
 import type { Database } from "../db/index.js";
 import { AppError } from "../errors.js";
 export interface OtpProvider {
+  readonly expiresInSeconds?: number;
   request(phone: string): Promise<void>;
   verify(phone: string, code: string): Promise<boolean>;
 }
@@ -66,48 +67,42 @@ export class DevOtpProvider implements OtpProvider {
   }
 }
 export class TwilioOtpProvider implements OtpProvider {
-  private service() {
-    if (
-      !config.TWILIO_ACCOUNT_SID ||
-      !config.TWILIO_AUTH_TOKEN ||
-      !config.TWILIO_VERIFY_SERVICE_SID
-    )
-      throw new AppError(
-        503,
-        "OTP_UNAVAILABLE",
-        "Phone verification is not configured. Please contact support.",
-      );
-    return twilio(
-      config.TWILIO_ACCOUNT_SID,
-      config.TWILIO_AUTH_TOKEN,
-    ).verify.v2.services(config.TWILIO_VERIFY_SERVICE_SID);
-  }
+  readonly expiresInSeconds = 600;
   async request(phone: string) {
     try {
-      await this.service().verifications.create({ to: phone, channel: "sms" });
-    } catch (e: any) {
-      if (e instanceof AppError) throw e;
-      throw new AppError(
-        e.status === 429 ? 429 : 503,
-        e.status === 429 ? "OTP_RATE_LIMITED" : "OTP_UNAVAILABLE",
-        "SMS could not be sent. Check the number and account permissions; trial accounts require verified destinations.",
-      );
+      const result = await twilioVerifyService().verifications.create({
+        to: phone,
+        channel: "sms",
+      });
+      if (result.status !== "pending")
+        throw new AppError(
+          503,
+          "OTP_UNAVAILABLE",
+          "The SMS provider did not start verification. Please try again.",
+        );
+    } catch (e: unknown) {
+      throw twilioError(e);
     }
   }
   async verify(phone: string, code: string) {
     try {
       return (
-        (await this.service().verificationChecks.create({ to: phone, code }))
-          .status === "approved"
+        (
+          await twilioVerifyService().verificationChecks.create({
+            to: phone,
+            code,
+          })
+        ).status === "approved"
       );
-    } catch (e: any) {
-      if (e.status === 404 || e.status === 400) return false;
-      if (e instanceof AppError) throw e;
-      throw new AppError(
-        503,
-        "OTP_UNAVAILABLE",
-        "Verification is temporarily unavailable. Please try again.",
-      );
+    } catch (e: unknown) {
+      const providerError = e as { status?: number; code?: number } | null;
+      // Verify deletes expired/used challenges; other provider failures aren't bad OTPs.
+      if (
+        !(e instanceof AppError) &&
+        (providerError?.status === 404 || providerError?.code === 60202)
+      )
+        return false;
+      throw twilioError(e);
     }
   }
 }
