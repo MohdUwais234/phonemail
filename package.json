@@ -14,6 +14,7 @@
     "android:sync": "npm run android:sync -w web"
   },
   "devDependencies": {
+    "@playwright/test": "^1.63.0",
     "prettier": "^3.6.2"
   },
   "engines": {

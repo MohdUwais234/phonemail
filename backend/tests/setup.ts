@@ -1,5 +1,6 @@
 import { PGlite } from "@electric-sql/pglite";
 import pg from "pg";
+import { randomUUID } from "node:crypto";
 import type { Database } from "../src/db/index.js";
 import { migrate } from "../src/db/migrations.js";
 export async function testDatabase() {
@@ -9,7 +10,13 @@ export async function testDatabase() {
   if (url) {
     if (new URL(url).pathname !== "/phonemail_test")
       throw new Error("Tests require a database named phonemail_test");
-    const pool = new pg.Pool({ connectionString: url });
+    const schema = `test_${randomUUID().replaceAll("-", "")}`;
+    const admin = new pg.Pool({ connectionString: url });
+    await admin.query(`CREATE SCHEMA "${schema}"`);
+    const pool = new pg.Pool({
+      connectionString: url,
+      options: `-c search_path=${schema}`,
+    });
     db = {
       query: (s, p) => pool.query(s, p),
       transaction: async (fn) => {
@@ -27,7 +34,12 @@ export async function testDatabase() {
         }
       },
     };
-    close = () => pool.end();
+    close = async () => {
+      await pool.end();
+      // Only our randomized, isolated test schema is removed, never public/development data.
+      await admin.query(`DROP SCHEMA "${schema}" CASCADE`);
+      await admin.end();
+    };
   } else {
     const pg = new PGlite();
     const wrap = (p: any): any => ({
