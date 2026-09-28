@@ -16,3 +16,8 @@ web/android/app/src/main/assets/capacitor.plugins.json
 *.keystore
 playwright-report/
 test-results/
+
+# Native CI evidence (artifact, not source)
+native-test-diagnostic.txt
+android-launch.png
+android-runtime.log

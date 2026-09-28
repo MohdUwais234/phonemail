@@ -5,7 +5,7 @@ on:
   workflow_dispatch:
     inputs:
       api_url:
-        description: "Reachable HTTPS API base URL, without trailing slash or /api unless deployed under /api"
+        description: "HTTPS API base, or http://127.0.0.1:3000 for USB local development"
         required: true
         type: string
 permissions:
@@ -15,18 +15,19 @@ jobs:
   apk:
     runs-on: ubuntu-24.04
     env:
-      VITE_API_URL: ${{ inputs.api_url || vars.PHONEMAIL_API_URL || 'https://api.phonemail.invalid' }}
+      VITE_API_URL: ${{ inputs.api_url || vars.PHONEMAIL_API_URL || 'http://127.0.0.1:3000' }}
     steps:
       - uses: actions/checkout@v5
       - name: Validate API URL
         run: |
-          case "$VITE_API_URL" in https://*) ;; *) echo 'HTTPS API URL required'; exit 1;; esac
-          if [ "$VITE_API_URL" = 'https://api.phonemail.invalid' ]; then
-            echo '::warning::Build-only APK: configure PHONEMAIL_API_URL or workflow input for functional API connectivity.'
-          fi
+          case "$VITE_API_URL" in
+            https://*) echo "PHONEMAIL_ANDROID_LOCAL=false" >> "$GITHUB_ENV" ;;
+            http://127.0.0.1:3000|http://10.0.2.2:3000) echo "PHONEMAIL_ANDROID_LOCAL=true" >> "$GITHUB_ENV" ;;
+            *) echo 'Use HTTPS or an explicitly supported local-debug address'; exit 1 ;;
+          esac
       - name: Build shared frontend and sync Capacitor in Docker
         run: |
-          docker run --rm -v "$PWD:/workspace" -w /workspace -e VITE_API_URL \
+          docker run --rm -v "$PWD:/workspace" -w /workspace -e VITE_API_URL -e PHONEMAIL_ANDROID_LOCAL \
             node:22-bookworm-slim sh -c 'npm ci && npm run build -w web && npm run android:sync'
           sudo chown -R "$(id -u):$(id -g)" node_modules web/android web/dist
       - uses: actions/setup-java@v5
@@ -58,6 +59,8 @@ jobs:
   launch-smoke:
     needs: apk
     runs-on: ubuntu-24.04
+    env:
+      VITE_API_URL: ${{ inputs.api_url || vars.PHONEMAIL_API_URL || 'http://127.0.0.1:3000' }}
     steps:
       - uses: actions/checkout@v5
       - uses: actions/download-artifact@v4
@@ -68,6 +71,13 @@ jobs:
         with:
           distribution: temurin
           java-version: "21"
+      - name: Start local API for native acceptance
+        run: |
+          cp .env.example .env
+          sed -i 's/OTP_PROVIDER=twilio/OTP_PROVIDER=dev/' .env
+          docker compose up --build -d backend
+          timeout 180 sh -c 'until curl -fsS http://localhost:3000/health >/dev/null; do sleep 3; done'
+          docker logs -f "$(docker compose ps -q backend)" > /tmp/phonemail-native-otp.log 2>&1 &
       - name: Enable KVM access
         run: |
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
@@ -81,12 +91,33 @@ jobs:
           disable-animations: true
           script: |
             adb install apk/app-debug.apk
+            adb reverse tcp:3000 tcp:3000
             adb shell am start -W -n com.phonemail.app/.MainActivity
             sleep 10
             adb shell pidof com.phonemail.app
+            adb forward tcp:9222 localabstract:webview_devtools_remote_$(adb shell pidof com.phonemail.app | tr -d '\r')
+            docker run --rm --network host -v "$PWD:/workspace" -v /tmp/phonemail-native-otp.log:/tmp/otp.log:ro -w /workspace -e OTP_LOG_FILE=/tmp/otp.log -e VITE_API_URL node:22-bookworm-slim sh -c 'npm ci && node tests/android-smoke.mjs first'
+            adb shell am force-stop com.phonemail.app
+            adb shell am start -W -n com.phonemail.app/.MainActivity
+            sleep 5
+            adb forward tcp:9222 localabstract:webview_devtools_remote_$(adb shell pidof com.phonemail.app | tr -d '\r')
+            docker run --rm --network host -v "$PWD:/workspace" -w /workspace -e VITE_API_URL node:22-bookworm-slim node tests/android-smoke.mjs restored
             adb exec-out screencap -p > android-launch.png
             adb logcat -d -s AndroidRuntime > android-runtime.log
             if grep -q 'FATAL EXCEPTION' android-runtime.log; then cat android-runtime.log; exit 1; fi
+      - name: Publish native test diagnostics
+        if: failure()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if [ -f native-test-diagnostic.txt ]; then
+            python3 - <<'PYCODE' > "$RUNNER_TEMP/native-check.json"
+          import json, os
+          text=open('native-test-diagnostic.txt').read()[-55000:]
+          print(json.dumps({'name':'Native test diagnostics','head_sha':os.environ['GITHUB_SHA'],'status':'completed','conclusion':'failure','output':{'title':'Native test failure','summary':text}}))
+          PYCODE
+            gh api -X POST "repos/$GITHUB_REPOSITORY/check-runs" --input "$RUNNER_TEMP/native-check.json"
+          fi
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -94,3 +125,7 @@ jobs:
           path: |
             android-launch.png
             android-runtime.log
+            native-test-diagnostic.txt
+      - name: Stop API
+        if: always()
+        run: docker compose down

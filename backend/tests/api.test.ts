@@ -152,16 +152,13 @@ describe("authentication and mailbox integration", () => {
   });
   let inbox: string, sent: string;
   it("delivers internally and ignores forged sender identity", async () => {
-    const r = await request(app)
-      .post("/emails")
-      .set(auth(a))
-      .send({
-        to: "2222222222@phonemail.com",
-        subject: "Hello",
-        body: "A real message",
-        from: "forged@example.com",
-        userId: bid,
-      });
+    const r = await request(app).post("/emails").set(auth(a)).send({
+      to: "2222222222@phonemail.com",
+      subject: "Hello",
+      body: "A real message",
+      from: "forged@example.com",
+      userId: bid,
+    });
     expect(r.status).toBe(201);
     expect(r.body.from).toBe("1111111111@phonemail.com");
     expect(r.body.delivery).toBe("delivered");
@@ -264,27 +261,21 @@ describe("authentication and mailbox integration", () => {
           .send({ draftId: d.id, to: "1111111111@phonemail.com", body: "hack" })
       ).status,
     ).toBe(404);
-    const updated = await request(app)
-      .post("/emails/draft")
-      .set(auth(a))
-      .send({
-        draftId: d.id,
-        to: "2222222222@phonemail.com",
-        subject: "Ready",
-        body: "Saved",
-      });
+    const updated = await request(app).post("/emails/draft").set(auth(a)).send({
+      draftId: d.id,
+      to: "2222222222@phonemail.com",
+      subject: "Ready",
+      body: "Saved",
+    });
     expect(updated.body.id).toBe(d.id);
     expect(
       (
-        await request(app)
-          .post("/emails")
-          .set(auth(a))
-          .send({
-            draftId: d.id,
-            to: "2222222222@phonemail.com",
-            subject: "Ready",
-            body: "Saved",
-          })
+        await request(app).post("/emails").set(auth(a)).send({
+          draftId: d.id,
+          to: "2222222222@phonemail.com",
+          subject: "Ready",
+          body: "Saved",
+        })
       ).body.folder,
     ).toBe("SENT");
     expect(
