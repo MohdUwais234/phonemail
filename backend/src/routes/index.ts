@@ -28,7 +28,7 @@ export function routes(db: Database, otp: OtpProvider, limits = true) {
         message: "Too many attempts. Please try again in 15 minutes.",
       },
     });
-  r.post("/auth/otp/request", limiter(5), a.request);
+  r.post("/auth/otp/request", limiter(50), a.request);
   r.post("/auth/otp/verify", limiter(20), a.verify);
   r.get("/auth/me", requireAuth, a.me);
   r.patch("/auth/me", requireAuth, a.update);
